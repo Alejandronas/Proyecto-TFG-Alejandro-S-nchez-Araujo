@@ -234,3 +234,62 @@ vagrant provision backend1
 # Apagar todo
 vagrant halt
 ```
+
+# 7. Herramienta de Monitorización y Administración
+
+Como complemento a la infraestructura de la clínica, se ha desarrollado una consola de administración centralizada programada en Python. Esta herramienta permite al administrador del sistema supervisar el estado del hardware, gestionar el ciclo de vida de las máquinas virtuales y auditar la seguridad de la red mediante una interfaz gráfica intuitiva.
+
+## 7.1 Arquitectura del Monitor
+
+La herramienta sigue un modelo de ejecución desacoplado:
+
+- **Frontend (Python + Tkinter):** Una interfaz gráfica (`monitor_sistema.py`) que gestiona la interacción con el usuario, la captura de rutas de archivos y la visualización de datos en tiempo real.
+- **Backend (Bash Scripts):** Una batería de scripts modulares situados en el directorio `/scripts` que ejecutan las tareas de bajo nivel, consultas al sistema y comandos de Vagrant.
+- **Gestión de Procesos:** Utiliza la librería `subprocess` de Python para ejecutar comandos de forma asíncrona, permitiendo que la interfaz no se bloquee mientras se reciben datos de salida (streaming de logs).
+
+## 7.2 Funcionalidades Implementadas
+
+La herramienta organiza sus capacidades en cinco bloques operativos:
+
+### A. Gestión de Virtualización (Vagrant & VirtualBox)
+
+Permite el control total de los nodos de la clínica (SGBD, Backend, Balanceador) desde la interfaz:
+
+- **Control de Ciclo de Vida:** Ejecución de `up`, `halt`, `provision` y `status` de forma selectiva.
+- **Acceso Rápido:** Botón para abrir terminales SSH automáticas y visualización de la configuración de red de cada VM.
+- **Auditoría de Hipervisor:** Listado de procesos activos de VirtualBox y estado global de las máquinas registradas.
+
+### B. Monitorización de Recursos Críticos
+
+Scripts dedicados a la salud del servidor anfitrión:
+
+- **CPU y RAM:** Análisis de carga media, top de procesos por consumo y estadísticas de memoria swap.
+- **Temperatura:** Monitorización de zonas térmicas mediante `/sys/class/thermal` y compatibilidad con `lm-sensors`.
+- **Almacenamiento:** Localización de discos virtuales (`.vdi`, `.vmdk`) y cálculo del espacio total ocupado en el entorno de virtualización.
+
+### C. Servicios Web y Red
+
+Supervisión del stack tecnológico de la aplicación clínica:
+
+- **Estado de Servicios:** Comprobación recursiva de `apache2`, `nginx`, `mysql` y `php-fpm`.
+- **Auditoría de Puertos:** Escaneo de puertos abiertos (80, 443, 3306) para asegurar que los servicios son accesibles.
+- **Tráfico de Red:** Estadísticas RX/TX de interfaces físicas y virtuales (puentes de red y NAT).
+
+### D. Seguridad y Logs
+
+Herramientas de respuesta ante incidentes:
+
+- **Análisis de Intrusiones:** Filtrado automático de `/var/log/auth.log` y `journalctl` para detectar intentos fallidos de login.
+- **Geolocalización de IPs:** Extracción de las 10 direcciones IP con más intentos fallidos para facilitar su bloqueo en el firewall.
+
+## 7.3 Resumen de Scripts de Automatización
+
+| Script | Función Principal |
+|---|---|
+| `cpu.sh` | Muestra uptime, carga media y top de procesos. |
+| `servicios_web.sh` | Verifica el estado de Apache, Nginx y MySQL. |
+| `vagrant_control.sh` | Orquestador de comandos para las máquinas del proyecto. |
+| `discos_vdi.sh` | Gestiona el espacio en disco de las máquinas virtuales. |
+| `login_fallidos.sh` | Auditoría de seguridad sobre intentos de acceso no autorizados. |
+| `trafico_red.sh` | Visualiza interfaces, rutas y conexiones TCP activas. |
+
